@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>TON 100 Lottery</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Mono:wght@400;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0d14;
+    --ink-2:#10141d;
+    --panel:#141a24;
+    --panel-2:#191f2b;
+    --gold:#e6ba55;
+    --gold-soft:#f2d493;
+    --gold-deep:#9c7a2e;
+    --wine:#a5384a;
+    --text:#f1efe8;
+    --muted:#8891a3;
+    --line:#232a38;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse 90% 60% at 50% -10%, #1c2433 0%, transparent 60%),
+      radial-gradient(ellipse 70% 50% at 85% 100%, rgba(166,56,74,.15) 0%, transparent 60%),
+      var(--ink);
+    color:var(--text);
+    font-family:'Manrope', sans-serif;
+    display:flex; justify-content:center;
+    padding:32px 16px 80px;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  .sparks{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:0; }
+  .spark{
+    position:absolute; width:3px; height:3px; border-radius:50%;
+    background:var(--gold); opacity:0; animation:drift 7s linear infinite;
+  }
+  @keyframes drift{
+    0%{ transform:translateY(0) scale(0); opacity:0; }
+    10%{ opacity:.7; transform:scale(1); }
+    90%{ opacity:.4; }
+    100%{ transform:translateY(-120vh) scale(0); opacity:0; }
+  }
+
+  .stage{ position:relative; z-index:1; width:100%; max-width:400px; }
+
+  .eyebrow{
+    text-align:center; font-family:'Space Mono', monospace; font-size:11px;
+    letter-spacing:.22em; text-transform:uppercase; color:var(--gold-deep);
+    margin-bottom:10px; opacity:0; animation:riseIn .6s ease forwards;
+  }
+  h1{
+    font-family:'Fraunces', serif; font-weight:600; font-style:normal;
+    font-optical-sizing:auto; text-align:center; font-size:30px; letter-spacing:-.01em;
+    margin:0 0 26px; color:var(--gold-soft);
+    opacity:0; animation:riseIn .6s ease .08s forwards;
+  }
+  @keyframes riseIn{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:translateY(0);} }
+
+  .ticket{
+    position:relative;
+    background:linear-gradient(155deg, var(--panel) 0%, var(--panel-2) 100%);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:28px 24px 24px;
+    transform:rotate(-1.2deg);
+    opacity:0; animation:ticketIn .7s cubic-bezier(.2,.9,.25,1) .18s forwards;
+    box-shadow:0 30px 60px -30px rgba(0,0,0,.6);
+  }
+  @keyframes ticketIn{
+    from{ opacity:0; transform:rotate(-1.2deg) translateY(24px) scale(.97); }
+    to{ opacity:1; transform:rotate(-1.2deg) translateY(0) scale(1); }
+  }
+
+  .ticket::before, .ticket::after{
+    content:""; position:absolute; width:22px; height:22px; border-radius:50%;
+    background:var(--ink); top:50%; transform:translateY(-50%);
+  }
+  .ticket::before{ left:-11px; }
+  .ticket::after{ right:-11px; }
+
+  .perf{
+    position:absolute; top:0; bottom:0; left:78px; width:0;
+    border-left:2px dashed var(--line);
+  }
+
+  .ring-wrap{ display:flex; justify-content:center; margin-bottom:8px; }
+  .ring{ position:relative; width:176px; height:176px; }
+  .ring svg{ width:100%; height:100%; transform:rotate(-90deg); }
+  .ring-track{ fill:none; stroke:var(--line); stroke-width:9; }
+  .ring-fill{
+    fill:none; stroke:url(#goldGrad); stroke-width:9; stroke-linecap:round;
+    stroke-dasharray:466; stroke-dashoffset:466;
+    transition:stroke-dashoffset 1s cubic-bezier(.4,.8,.2,1);
+    filter:drop-shadow(0 0 6px rgba(230,186,85,.5));
+  }
+  .ring-center{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+  }
+  .pot{
+    font-family:'Fraunces', serif; font-weight:600; font-size:30px; color:var(--gold-soft);
+    line-height:1;
+  }
+  .pot-sub{ font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:6px; }
+
+  .odometer{
+    display:flex; justify-content:center; align-items:baseline; gap:6px;
+    font-family:'Space Mono', monospace; margin:18px 0 6px;
+  }
+  .odometer .num{
+    font-size:34px; font-weight:700; color:var(--text);
+    display:inline-block; min-width:1ch;
+  }
+  .odometer .of{ font-size:16px; color:var(--muted); }
+  .odometer .max{ font-size:16px; color:var(--muted); }
+
+  .bar-label{
+    text-align:center; font-size:11px; color:var(--muted); margin-bottom:22px;
+    font-family:'Space Mono', monospace; letter-spacing:.05em;
+  }
+
+  .rows{ border-top:1px solid var(--line); padding-top:14px; display:grid; gap:9px; margin-bottom:20px; }
+  .row{ display:flex; justify-content:space-between; font-size:13px; }
+  .row .k{ color:var(--muted); }
+  .row .v{ font-weight:600; }
+  .row .v.gold{ color:var(--gold-soft); }
+
+  #ton-connect{ display:flex; justify-content:center; margin-bottom:14px; }
+
+  button#buy-btn{
+    width:100%; padding:17px; border:none; border-radius:14px;
+    font-family:'Manrope',sans-serif; font-size:16px; font-weight:700;
+    background:linear-gradient(135deg, var(--gold-soft), var(--gold) 60%, var(--gold-deep));
+    color:#241a06; cursor:pointer; position:relative; overflow:hidden;
+    box-shadow:0 10px 24px -8px rgba(230,186,85,.45);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  button#buy-btn:active{ transform:scale(.98); }
+  button#buy-btn:disabled{
+    background:var(--line); color:var(--muted); box-shadow:none; cursor:not-allowed;
+  }
+  button#buy-btn.pulse{ animation:pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse{
+    0%,100%{ box-shadow:0 10px 24px -8px rgba(230,186,85,.45); }
+    50%{ box-shadow:0 10px 34px -6px rgba(230,186,85,.75); }
+  }
+
+  .status{ text-align:center; font-size:12px; color:var(--muted); margin-top:14px; min-height:16px; font-family:'Space Mono', monospace; }
+  .status.ok{ color:#8fd19e; }
+  .status.err{ color:#e08b8f; }
+
+  .stub{ display:flex; justify-content:space-between; align-items:center; margin-top:18px; padding-top:14px; border-top:1px dashed var(--line); }
+  .stub-label{ font-size:10px; color:var(--muted); letter-spacing:.12em; text-transform:uppercase; }
+  .stub-addr{ font-family:'Space Mono', monospace; font-size:11px; color:var(--muted); }
+
+  @media (max-width:380px){
+    h1{ font-size:25px; }
+    .ring{ width:150px; height:150px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sparks" id="sparks"></div>
+
+<div class="stage">
+  <div class="eyebrow">Раунд <span id="round-id">—</span> · TON blockchain</div>
+  <h1>TON 100 Lottery</h1>
+
+  <div class="ticket">
+    <div class="perf"></div>
+
+    <div class="ring-wrap">
+      <div class="ring">
+        <svg viewBox="0 0 176 176">
+          <defs>
+            <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f2d493"/>
+              <stop offset="100%" stop-color="#c9932f"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-track" cx="88" cy="88" r="74"/>
+          <circle class="ring-fill" id="ring-fill" cx="88" cy="88" r="74"/>
+        </svg>
+        <div class="ring-center">
+          <div class="pot">100 TON</div>
+          <div class="pot-sub">банк раунда</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="odometer">
+      <span class="num" id="players">0</span>
+      <span class="of">/</span>
+      <span class="max">100</span>
+    </div>
+    <div class="bar-label">игроков в текущем раунде</div>
+
+    <div class="rows">
+      <div class="row"><span class="k">Цена билета</span><span class="v">1 TON</span></div>
+      <div class="row"><span class="k">Приз победителю</span><span class="v gold">90 TON</span></div>
+      <div class="row"><span class="k">Комиссия организатора</span><span class="v">10 TON</span></div>
+    </div>
+
+    <div id="ton-connect"></div>
+    <button id="buy-btn" disabled>Сначала подключи кошелёк</button>
+    <div class="status" id="status"></div>
+
+    <div class="stub">
+      <span class="stub-label">Контракт</span>
+      <span class="stub-addr" id="contract-addr">—</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const CONTRACT_ADDRESS = 'ВСТАВЬ_АДРЕС_КОНТРАКТА_EQD...';
+  const APP_URL = 'https://ТВОЙ_НИКНЕЙМ.github.io/lottery-mini-app';
+  const TONCENTER_API = 'https://toncenter.com/api/v2/runGetMethod';
+  const RING_CIRCUMFERENCE = 465;
+
+  document.getElementById('contract-addr').textContent =
+    CONTRACT_ADDRESS.length > 16 ? CONTRACT_ADDRESS.slice(0,6) + '…' + CONTRACT_ADDRESS.slice(-4) : CONTRACT_ADDRESS;
+
+  const sparksEl = document.getElementById('sparks');
+  for (let i=0; i<18; i++){
+    const s = document.createElement('div');
+    s.className = 'spark';
+    s.style.left = Math.random()*100 + '%';
+    s.style.bottom = (Math.random()*20) + 'px';
+    s.style.animationDelay = (Math.random()*7) + 's';
+    s.style.animationDuration = (5 + Math.random()*4) + 's';
+    sparksEl.appendChild(s);
+  }
+
+  const statusEl = document.getElementById('status');
+  function setStatus(text, cls){
+    statusEl.textContent = text || '';
+    statusEl.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  function animateNumber(el, to){
+    const from = parseInt(el.textContent) || 0;
+    if (from === to) return;
+    const dir = to > from ? 1 : -1;
+    let cur = from, i = 0;
+    const iv = setInterval(() => {
+      cur += dir;
+      el.textContent = cur;
+      i++;
+      if (cur === to || i >= 60) clearInterval(iv);
+    }, 18);
+  }
+
+  async function fetchLotteryData(){
+    try {
+      const res = await fetch(TONCENTER_API, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ address: CONTRACT_ADDRESS, method:'get_lottery_data', stack: [] })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error('bad response');
+
+      const stack = data.result.stack;
+      const playersCount = parseInt(stack[0][1], 16);
+      const roundId = parseInt(stack[2][1], 16);
+
+      animateNumber(document.getElementById('players'), playersCount);
+      document.getElementById('round-id').textContent = roundId;
+
+      const ringFill = document.getElementById('ring-fill');
+      const offset = RING_CIRCUMFERENCE - (RING_CIRCUMFERENCE * playersCount / 100);
+      ringFill.style.strokeDashoffset = offset;
+
+      setStatus('');
+    } catch (e) {
+      setStatus('Не удалось получить данные с блокчейна', 'err');
+    }
+  }
+
+  fetchLotteryData();
+  setInterval(fetchLotteryData, 10000);
+
+  const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+    manifestUrl: APP_URL + '/tonconnect-manifest.json',
+    buttonRootId: 'ton-connect'
+  });
+
+  const buyBtn = document.getElementById('buy-btn');
+
+  tonConnectUI.onStatusChange(wallet => {
+    if (wallet) {
+      buyBtn.disabled = false;
+      buyBtn.textContent = 'Купить билет — 1 TON';
+      buyBtn.classList.add('pulse');
+    } else {
+      buyBtn.disabled = true;
+      buyBtn.textContent = 'Сначала подключи кошелёк';
+      buyBtn.classList.remove('pulse');
+    }
+  });
+
+  function burstConfetti(){
+    if (typeof confetti !== 'function') return;
+    confetti({
+      particleCount: 90,
+      spread: 70,
+      startVelocity: 38,
+      origin: { y: 0.55 },
+      colors: ['#e6ba55', '#f2d493', '#9c7a2e', '#f1efe8']
+    });
+  }
+
+  buyBtn.addEventListener('click', async () => {
+    const transaction = {
+      validUntil: Math.floor(Date.now()/1000) + 600,
+      messages: [{ address: CONTRACT_ADDRESS, amount: '1030000000' }]
+    };
+
+    try {
+      buyBtn.disabled = true;
+      buyBtn.classList.remove('pulse');
+      buyBtn.textContent = 'Отправляем…';
+      await tonConnectUI.sendTransaction(transaction);
+      setStatus('Билет отправлен — обновляем данные', 'ok');
+      burstConfetti();
+      setTimeout(fetchLotteryData, 5000);
+    } catch (e) {
+      setStatus('Транзакция отменена или не прошла', 'err');
+    } finally {
+      buyBtn.disabled = false;
+      buyBtn.classList.add('pulse');
+      buyBtn.textContent = 'Купить билет — 1 TON';
+    }
+  });
+
+  if (window.Telegram && window.Telegram.WebApp) {
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+    if (window.Telegram.WebApp.setHeaderColor) {
+      window.Telegram.WebApp.setHeaderColor('#0a0d14');
+    }
+  }
+</script>
+</body>
+</html>
