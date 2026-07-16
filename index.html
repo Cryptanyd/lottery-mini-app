@@ -202,17 +202,102 @@
 </div>
 
 <script>
-  // === КОНФИГУРАЦИЯ ===
+  // ============================================================
+  // КОНФИГУРАЦИЯ
+  // ============================================================
   const CONTRACT_ADDRESS = 'EQD0NvW_RbNI7Y4vt0U_c1bdL8xfqMEoSUKvGZ0tKxmvRhD6';
   const APP_URL = 'https://cryptanyd.github.io/lottery-mini-app';
   const TONCENTER_API = 'https://toncenter.com/api/v2/jsonRPC';
+  
+  // Минимальная сумма для участия = 1 TON (в нанотонах)
+  const MIN_TICKET_PRICE_NANO = 1000000000n; // 1 TON = 10^9 нанотон
 
-  // === СОСТОЯНИЕ ===
+  // ============================================================
+  // СОСТОЯНИЕ
+  // ============================================================
   let tonConnectUI = null;
   let wallet = null;
-  let lotteryData = { playersCount: 0, ticketPrice: 1000000000n, maxPlayers: 100, roundId: 0 };
+  let lotteryData = { 
+    playersCount: 0, 
+    ticketPrice: MIN_TICKET_PRICE_NANO, 
+    maxPlayers: 100, 
+    roundId: 0,
+    prizePool: 0n
+  };
 
-  // === ИНИЦИАЛИЗАЦИЯ TON CONNECT ===
+  // ============================================================
+  // УТИЛИТЫ
+  // ============================================================
+  
+  // Форматирование нанотон → TON (строка)
+  function formatTon(nanoTon) {
+    if (typeof nanoTon === 'bigint') {
+      const ton = Number(nanoTon) / 1e9;
+      return ton.toFixed(ton % 1 === 0 ? 0 : 2);
+    }
+    if (typeof nanoTon === 'number') {
+      return (nanoTon / 1e9).toFixed(nanoTon % 1e9 === 0 ? 0 : 2);
+    }
+    return '0';
+  }
+
+  // Парсинг числа из стека TonCenter (поддерживает разные форматы)
+  function parseStackNumber(item) {
+    if (!item) return 0;
+    
+    // Формат 1: ["num", "0x123abc"] или ["int", "0x123abc"]
+    if (Array.isArray(item) && item.length >= 2) {
+      const type = item[0];
+      const value = item[1];
+      
+      if (type === 'num' || type === 'int') {
+        // Может быть hex строка или число
+        if (typeof value === 'string') {
+          if (value.startsWith('0x') || value.startsWith('-0x')) {
+            return parseInt(value, 16);
+          }
+          return parseInt(value, 10);
+        }
+        if (typeof value === 'number') return value;
+        if (typeof value === 'bigint') return Number(value);
+      }
+      
+      // Формат 2: ["num", { "number": "123" }]
+      if (typeof value === 'object' && value !== null) {
+        if (value.number) return parseInt(value.number, 10);
+        if (value.value) return parseInt(value.value, 10);
+      }
+    }
+    
+    // Формат 3: просто число
+    if (typeof item === 'number') return item;
+    if (typeof item === 'bigint') return Number(item);
+    if (typeof item === 'string') {
+      if (item.startsWith('0x')) return parseInt(item, 16);
+      return parseInt(item, 10);
+    }
+    
+    console.warn('Неизвестный формат стека:', item);
+    return 0;
+  }
+
+  // Парсинг BigInt из стека
+  function parseStackBigInt(item) {
+    const num = parseStackNumber(item);
+    return BigInt(num);
+  }
+
+  // Показать статусное сообщение
+  function showStatus(msg, type) {
+    const el = document.getElementById('status-msg');
+    el.textContent = msg;
+    el.className = 'status-msg ' + (type || '');
+  }
+
+  // ============================================================
+  // TON CONNECT
+  // ============================================================
+  
   async function initTonConnect() {
     try {
       tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
@@ -223,14 +308,15 @@
       tonConnectUI.onStatusChange((w) => {
         wallet = w;
         updateWalletUI();
-        checkParticipation();
+        if (wallet) checkParticipation();
       });
 
-      // Проверяем, есть ли сохранённое подключение
+      // Проверяем сохранённое подключение
       const restored = await tonConnectUI.connectionRestored;
-      if (restored) {
+      if (restored && tonConnectUI.wallet) {
         wallet = tonConnectUI.wallet;
         updateWalletUI();
+        checkParticipation();
       }
     } catch (e) {
       console.error('TON Connect init error:', e);
@@ -257,14 +343,17 @@
     }
   }
 
-  // === ЗАПРОСЫ К КОНТРАКТУ ЧЕРЕЗ TONCENTER ===
+  // ============================================================
+  // API TONCENTER
+  // ============================================================
+  
   async function callContractMethod(method, params = []) {
     const response = await fetch(TONCENTER_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         jsonrpc: '2.0',
-        id: 1,
+        id: Date.now(),
         method: 'runGetMethod',
         params: {
           address: CONTRACT_ADDRESS,
@@ -275,53 +364,88 @@
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
+    
+    console.log(`TonCenter response for ${method}:`, data);
+    
     if (data.error) {
-      throw new Error(data.error.message || 'TonCenter error');
+      throw new Error(data.error.message || `TonCenter error: ${JSON.stringify(data.error)}`);
+    }
+
+    if (!data.result) {
+      throw new Error('Empty result from TonCenter');
     }
 
     return data.result;
   }
 
-  // === ЧТЕНИЕ ДАННЫХ ЛОТЕРЕИ ===
+  // ============================================================
+  // ЧТЕНИЕ ДАННЫХ ЛОТЕРЕИ
+  // ============================================================
+  
   async function updateLotteryData() {
     try {
       showStatus('Загрузка данных...', '');
+      
+      console.log('Fetching lottery data...');
 
       const result = await callContractMethod('get_lottery_data');
+      
+      console.log('Raw TonCenter result:', JSON.stringify(result, null, 2));
 
-      // Парсим стек ответа
-      const stack = result.stack || [];
-      if (stack.length < 5) {
-        throw new Error('Invalid response stack');
+      // Проверяем наличие стека
+      if (!result.stack || !Array.isArray(result.stack)) {
+        throw new Error('Response missing stack array. Got: ' + JSON.stringify(result));
       }
 
-      // Формат стека: [playersCount, ownerAddress, roundId, ticketPrice, maxPlayers]
-      lotteryData.playersCount = parseInt(stack[0][1], 16);
-      lotteryData.roundId = parseInt(stack[2][1], 16);
-      lotteryData.ticketPrice = BigInt(parseInt(stack[3][1], 16));
-      lotteryData.maxPlayers = parseInt(stack[4][1], 16);
+      const stack = result.stack;
+      console.log('Stack length:', stack.length);
+      console.log('Stack items:', stack);
+
+      // Ожидаем 5 элементов: playersCount, ownerAddress, roundId, ticketPrice, maxPlayers
+      if (stack.length < 5) {
+        throw new Error(`Invalid response stack: expected 5 items, got ${stack.length}. Stack: ${JSON.stringify(stack)}`);
+      }
+
+      // Парсим данные (индексы 0-4 по порядку контракта)
+      lotteryData.playersCount = parseStackNumber(stack[0]);
+      // stack[1] = ownerAddress (пропускаем, не нужен для UI)
+      lotteryData.roundId = parseStackNumber(stack[2]);
+      lotteryData.ticketPrice = parseStackBigInt(stack[3]);
+      lotteryData.maxPlayers = parseStackNumber(stack[4]);
+
+      console.log('Parsed lottery data:', {
+        playersCount: lotteryData.playersCount,
+        roundId: lotteryData.roundId,
+        ticketPrice: lotteryData.ticketPrice.toString(),
+        maxPlayers: lotteryData.maxPlayers
+      });
+
+      // ПРОВЕРКА: минимальная цена билета = 1 TON
+      if (lotteryData.ticketPrice < MIN_TICKET_PRICE_NANO) {
+        console.warn('Ticket price from contract is less than minimum:', lotteryData.ticketPrice.toString());
+        lotteryData.ticketPrice = MIN_TICKET_PRICE_NANO;
+      }
+
+      // Призовой фонд = playersCount * ticketPrice * 90% (90% идёт победителю)
+      lotteryData.prizePool = BigInt(lotteryData.playersCount) * lotteryData.ticketPrice * 90n / 100n;
 
       // Обновляем UI
       document.getElementById('players').textContent = lotteryData.playersCount;
       document.getElementById('max-players').textContent = lotteryData.maxPlayers;
       document.getElementById('round-id').textContent = '#' + lotteryData.roundId;
-
-      // Призовой фонд = playersCount * ticketPrice * 0.9 (90% идёт победителю)
-      const prizePool = BigInt(lotteryData.playersCount) * lotteryData.ticketPrice * 90n / 100n;
-      document.getElementById('pot-amount').innerHTML = formatTon(prizePool) + '<span>TON</span>';
-
-      // Цена билета
+      document.getElementById('pot-amount').innerHTML = formatTon(lotteryData.prizePool) + '<span>TON</span>';
       document.getElementById('ticket-price').textContent = formatTon(lotteryData.ticketPrice) + ' TON';
 
-      // Обновляем график
+      // Обновляем график заполнения
       updateGauge(lotteryData.playersCount, lotteryData.maxPlayers);
 
-      // Проверяем участие текущего пользователя
+      // Обновляем кнопку покупки
       if (wallet) {
+        updateWalletUI();
         await checkParticipation();
       }
 
@@ -334,17 +458,15 @@
 
   function updateGauge(current, max) {
     const fill = document.getElementById('gauge-fill');
-    const percent = Math.min(current / max, 1);
+    const percent = max > 0 ? Math.min(current / max, 1) : 0;
     const offset = 504 - (504 * percent);
     fill.style.strokeDashoffset = offset;
   }
 
-  function formatTon(nanoTon) {
-    const ton = Number(nanoTon) / 1e9;
-    return ton.toFixed(ton % 1 === 0 ? 0 : 2);
-  }
-
-  // === ПРОВЕРКА УЧАСТИЯ ===
+  // ============================================================
+  // ПРОВЕРКА УЧАСТИЯ
+  // ============================================================
+  
   async function checkParticipation() {
     if (!wallet || !wallet.account) {
       document.getElementById('participation-status').textContent = 'Не участвуете';
@@ -356,19 +478,24 @@
 
     try {
       const addr = wallet.account.address;
-      // Формируем slice с адресом для get_is_participant
+      
+      // Формируем параметр для get_is_participant
+      // TonCenter ожидает stack item формата { type: 'slice', value: 'base64_boc' }
+      // Но для простоты попробуем сначала с адресом как строкой
       const result = await callContractMethod('get_is_participant', [
         { type: 'slice', value: addr }
       ]);
 
-      const isParticipant = result.stack && result.stack[0] && result.stack[0][1] === '0x1';
+      console.log('Participation check result:', result);
+
+      const isParticipant = result.stack && result.stack.length > 0 && parseStackNumber(result.stack[0]) === 1;
 
       if (isParticipant) {
         document.getElementById('participation-status').textContent = 'Участвуете';
         document.getElementById('participation-status').className = 'status-pill in';
         document.getElementById('my-tickets').textContent = '1';
         const chance = lotteryData.maxPlayers > 0
-          ? (1 / lotteryData.maxPlayers * 100).toFixed(1)
+          ? (100 / lotteryData.maxPlayers).toFixed(1)
           : '0';
         document.getElementById('win-chance').textContent = chance + '%';
       } else {
@@ -379,10 +506,16 @@
       }
     } catch (e) {
       console.error('Check participation error:', e);
+      // Не показываем ошибку пользователю, просто считаем что не участвует
+      document.getElementById('participation-status').textContent = 'Не участвуете';
+      document.getElementById('participation-status').className = 'status-pill out';
     }
   }
 
-  // === ПОКУПКА БИЛЕТА ===
+  // ============================================================
+  // ПОКУПКА БИЛЕТА
+  // ============================================================
+  
   async function buyTicket() {
     if (!wallet || !wallet.account) {
       showStatus('Сначала подключите кошелёк Tonkeeper', 'err');
@@ -390,66 +523,88 @@
     }
 
     try {
-      showStatus('Подготовка транзакции...', '');
+      showStatus('Проверка данных...', '');
 
-      // Проверяем, не участвует ли уже
+      // Перезагружаем данные перед покупкой
+      await updateLotteryData();
+
+      // ПРОВЕРКА 1: Не все ли билеты проданы?
+      if (lotteryData.playersCount >= lotteryData.maxPlayers) {
+        showStatus('Все билеты проданы! Ожидайте розыгрыша.', 'err');
+        return;
+      }
+
+      // ПРОВЕРКА 2: Не участвует ли уже?
       const addr = wallet.account.address;
       const checkResult = await callContractMethod('get_is_participant', [
         { type: 'slice', value: addr }
       ]);
-      const isParticipant = checkResult.stack && checkResult.stack[0] && checkResult.stack[0][1] === '0x1';
+      const isParticipant = checkResult.stack && checkResult.stack.length > 0 && parseStackNumber(checkResult.stack[0]) === 1;
 
       if (isParticipant) {
         showStatus('Вы уже участвуете в этом раунде!', 'err');
         return;
       }
 
-      if (lotteryData.playersCount >= lotteryData.maxPlayers) {
-        showStatus('Все билеты проданы! Ожидайте розыгрыша.', 'err');
-        return;
-      }
+      // ПРОВЕРКА 3: Минимальная сумма = 1 TON
+      // Используем цену из контракта, но не меньше 1 TON
+      const ticketPrice = lotteryData.ticketPrice >= MIN_TICKET_PRICE_NANO 
+        ? lotteryData.ticketPrice 
+        : MIN_TICKET_PRICE_NANO;
 
       showStatus('Отправка транзакции в кошелёк...', '');
 
       const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут
+        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут на подтверждение
         messages: [{
           address: CONTRACT_ADDRESS,
-          amount: lotteryData.ticketPrice.toString(), // Цена билета из контракта
-          payload: '' // Пустой payload — контракт сам обработает входящий TON
+          amount: ticketPrice.toString(), // Сумма в нанотонах (строка)
+          payload: '' // Пустой payload — контракт обработает входящий TON
         }]
       };
 
-      await tonConnectUI.sendTransaction(transaction);
+      console.log('Sending transaction:', transaction);
+
+      const txResult = await tonConnectUI.sendTransaction(transaction);
+      console.log('Transaction result:', txResult);
+
       showStatus('Билет куплен! Удачи в розыгрыше!', 'ok');
 
-      // Обновляем данные
-      setTimeout(updateLotteryData, 3000);
+      // Обновляем данные через 5 секунд (чтобы транзакция успела обработаться)
+      setTimeout(() => {
+        updateLotteryData();
+        checkParticipation();
+      }, 5000);
     } catch (e) {
       console.error('Buy ticket error:', e);
-      if (e.message && e.message.includes('Rejected')) {
+      
+      // Разбираем тип ошибки
+      const errorMsg = e.message || e.toString() || '';
+      
+      if (errorMsg.includes('Rejected') || errorMsg.includes('отменена') || errorMsg.includes('cancel')) {
         showStatus('Транзакция отменена пользователем', 'err');
-      } else if (e.message && e.message.includes('insufficient')) {
+      } else if (errorMsg.includes('insufficient') || errorMsg.includes('balance')) {
         showStatus('Недостаточно средств на кошельке', 'err');
+      } else if (errorMsg.includes('timeout') || errorMsg.includes('timed out')) {
+        showStatus('Время ожидания истекло, попробуйте снова', 'err');
       } else {
-        showStatus('Ошибка покупки: ' + (e.message || 'неизвестная ошибка'), 'err');
+        showStatus('Ошибка покупки: ' + errorMsg, 'err');
       }
     }
   }
 
-  // === УТИЛИТЫ ===
-  function showStatus(msg, type) {
-    const el = document.getElementById('status-msg');
-    el.textContent = msg;
-    el.className = 'status-msg ' + (type || '');
-  }
-
-  // === ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ===
+  // ============================================================
+  // ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
+  // ============================================================
+  
   document.addEventListener('DOMContentLoaded', () => {
+    console.log('App initializing...');
+    
     // Инициализируем Telegram WebApp
     if (window.Telegram && window.Telegram.WebApp) {
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
+      console.log('Telegram WebApp initialized');
     }
 
     // Инициализируем TON Connect
@@ -458,11 +613,15 @@
     // Загружаем данные лотереи
     updateLotteryData();
 
-    // Обновляем данные каждые 10 секунд
-    setInterval(updateLotteryData, 10000);
+    // Автообновление каждые 10 секунд
+    setInterval(() => {
+      updateLotteryData();
+    }, 10000);
 
     // Обработчик кнопки покупки
     document.getElementById('buy-btn').addEventListener('click', buyTicket);
+    
+    console.log('App initialized successfully');
   });
 </script>
 
