@@ -157,7 +157,7 @@
           stroke-dasharray="504" stroke-dashoffset="504" class="gauge-fill"/>
       </svg>
       <div class="gauge-center">
-        <div class="gauge-pot" id="pot-amount">100<span>TON</span></div>
+        <div class="gauge-pot" id="pot-amount">0<span>TON</span></div>
         <div class="gauge-count"><span id="players">0</span>/<span id="max-players">100</span> билетов</div>
       </div>
     </div>
@@ -165,4 +165,306 @@
     <div class="split-rows">
       <div class="split"><div class="num" id="ticket-price">1 TON</div><div class="lbl">билет</div></div>
       <div class="split"><div class="num">90%</div><div class="lbl">победителю</div></div>
-      <div class="split"><div class="num">10%</div><div
+      <div class="split"><div class="num">10%</div><div class="lbl">организатору</div></div>
+    </div>
+  </div>
+
+  <div class="section-title">Мой кабинет</div>
+  <div class="cabinet">
+    <div class="cabinet-row">
+      <div class="k">Статус участия</div>
+      <div class="v"><span class="status-pill out" id="participation-status">Не участвуете</span></div>
+    </div>
+    <div class="cabinet-row">
+      <div class="k">Ваши билеты</div>
+      <div class="v" id="my-tickets">0</div>
+    </div>
+    <div class="cabinet-row">
+      <div class="k">Вероятность победы</div>
+      <div class="v" id="win-chance">0%</div>
+    </div>
+  </div>
+
+  <div id="ton-connect-root"></div>
+  <button id="buy-btn" class="buy-btn" disabled>Купить билет</button>
+  <div id="status-msg" class="status-msg"></div>
+
+  <div class="section-title">История победителей</div>
+  <div class="winners" id="winners-list">
+    <div class="empty-note">Пока нет завершённых раундов</div>
+  </div>
+
+  <div class="footer-note">
+    Контракт: <a href="https://tonviewer.com/EQD0NvW_RbNI7Y4vt0U_c1bdL8xfqMEoSUKvGZ0tKxmvRhD6" target="_blank">Tonviewer</a><br>
+    Призовой фонд формируется из ставок участников
+  </div>
+
+</div>
+
+<script>
+  // === КОНФИГУРАЦИЯ ===
+  const CONTRACT_ADDRESS = 'EQD0NvW_RbNI7Y4vt0U_c1bdL8xfqMEoSUKvGZ0tKxmvRhD6';
+  const APP_URL = 'https://cryptanyd.github.io/lottery-mini-app';
+  const TONCENTER_API = 'https://toncenter.com/api/v2/jsonRPC';
+
+  // === СОСТОЯНИЕ ===
+  let tonConnectUI = null;
+  let wallet = null;
+  let lotteryData = { playersCount: 0, ticketPrice: 1000000000n, maxPlayers: 100, roundId: 0 };
+
+  // === ИНИЦИАЛИЗАЦИЯ TON CONNECT ===
+  async function initTonConnect() {
+    try {
+      tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: `${APP_URL}/tonconnect-manifest.json`,
+        buttonRootId: 'ton-connect-root'
+      });
+
+      tonConnectUI.onStatusChange((w) => {
+        wallet = w;
+        updateWalletUI();
+        checkParticipation();
+      });
+
+      // Проверяем, есть ли сохранённое подключение
+      const restored = await tonConnectUI.connectionRestored;
+      if (restored) {
+        wallet = tonConnectUI.wallet;
+        updateWalletUI();
+      }
+    } catch (e) {
+      console.error('TON Connect init error:', e);
+      showStatus('Ошибка инициализации кошелька', 'err');
+    }
+  }
+
+  function updateWalletUI() {
+    const chip = document.getElementById('wallet-chip');
+    const text = document.getElementById('wallet-chip-text');
+    const buyBtn = document.getElementById('buy-btn');
+
+    if (wallet && wallet.account) {
+      chip.classList.add('connected');
+      const addr = wallet.account.address;
+      text.textContent = addr.slice(0, 6) + '...' + addr.slice(-4);
+      buyBtn.disabled = false;
+      buyBtn.textContent = 'Купить билет (' + formatTon(lotteryData.ticketPrice) + ' TON)';
+    } else {
+      chip.classList.remove('connected');
+      text.textContent = 'Не подключён';
+      buyBtn.disabled = true;
+      buyBtn.textContent = 'Купить билет';
+    }
+  }
+
+  // === ЗАПРОСЫ К КОНТРАКТУ ЧЕРЕЗ TONCENTER ===
+  async function callContractMethod(method, params = []) {
+    const response = await fetch(TONCENTER_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'runGetMethod',
+        params: {
+          address: CONTRACT_ADDRESS,
+          method: method,
+          stack: params
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error.message || 'TonCenter error');
+    }
+
+    return data.result;
+  }
+
+  // === ЧТЕНИЕ ДАННЫХ ЛОТЕРЕИ ===
+  async function updateLotteryData() {
+    try {
+      showStatus('Загрузка данных...', '');
+
+      const result = await callContractMethod('get_lottery_data');
+
+      // Парсим стек ответа
+      const stack = result.stack || [];
+      if (stack.length < 5) {
+        throw new Error('Invalid response stack');
+      }
+
+      // Формат стека: [playersCount, ownerAddress, roundId, ticketPrice, maxPlayers]
+      lotteryData.playersCount = parseInt(stack[0][1], 16);
+      lotteryData.roundId = parseInt(stack[2][1], 16);
+      lotteryData.ticketPrice = BigInt(parseInt(stack[3][1], 16));
+      lotteryData.maxPlayers = parseInt(stack[4][1], 16);
+
+      // Обновляем UI
+      document.getElementById('players').textContent = lotteryData.playersCount;
+      document.getElementById('max-players').textContent = lotteryData.maxPlayers;
+      document.getElementById('round-id').textContent = '#' + lotteryData.roundId;
+
+      // Призовой фонд = playersCount * ticketPrice * 0.9 (90% идёт победителю)
+      const prizePool = BigInt(lotteryData.playersCount) * lotteryData.ticketPrice * 90n / 100n;
+      document.getElementById('pot-amount').innerHTML = formatTon(prizePool) + '<span>TON</span>';
+
+      // Цена билета
+      document.getElementById('ticket-price').textContent = formatTon(lotteryData.ticketPrice) + ' TON';
+
+      // Обновляем график
+      updateGauge(lotteryData.playersCount, lotteryData.maxPlayers);
+
+      // Проверяем участие текущего пользователя
+      if (wallet) {
+        await checkParticipation();
+      }
+
+      showStatus('', '');
+    } catch (e) {
+      console.error('Update lottery data error:', e);
+      showStatus('Ошибка загрузки данных: ' + e.message, 'err');
+    }
+  }
+
+  function updateGauge(current, max) {
+    const fill = document.getElementById('gauge-fill');
+    const percent = Math.min(current / max, 1);
+    const offset = 504 - (504 * percent);
+    fill.style.strokeDashoffset = offset;
+  }
+
+  function formatTon(nanoTon) {
+    const ton = Number(nanoTon) / 1e9;
+    return ton.toFixed(ton % 1 === 0 ? 0 : 2);
+  }
+
+  // === ПРОВЕРКА УЧАСТИЯ ===
+  async function checkParticipation() {
+    if (!wallet || !wallet.account) {
+      document.getElementById('participation-status').textContent = 'Не участвуете';
+      document.getElementById('participation-status').className = 'status-pill out';
+      document.getElementById('my-tickets').textContent = '0';
+      document.getElementById('win-chance').textContent = '0%';
+      return;
+    }
+
+    try {
+      const addr = wallet.account.address;
+      // Формируем slice с адресом для get_is_participant
+      const result = await callContractMethod('get_is_participant', [
+        { type: 'slice', value: addr }
+      ]);
+
+      const isParticipant = result.stack && result.stack[0] && result.stack[0][1] === '0x1';
+
+      if (isParticipant) {
+        document.getElementById('participation-status').textContent = 'Участвуете';
+        document.getElementById('participation-status').className = 'status-pill in';
+        document.getElementById('my-tickets').textContent = '1';
+        const chance = lotteryData.maxPlayers > 0
+          ? (1 / lotteryData.maxPlayers * 100).toFixed(1)
+          : '0';
+        document.getElementById('win-chance').textContent = chance + '%';
+      } else {
+        document.getElementById('participation-status').textContent = 'Не участвуете';
+        document.getElementById('participation-status').className = 'status-pill out';
+        document.getElementById('my-tickets').textContent = '0';
+        document.getElementById('win-chance').textContent = '0%';
+      }
+    } catch (e) {
+      console.error('Check participation error:', e);
+    }
+  }
+
+  // === ПОКУПКА БИЛЕТА ===
+  async function buyTicket() {
+    if (!wallet || !wallet.account) {
+      showStatus('Сначала подключите кошелёк Tonkeeper', 'err');
+      return;
+    }
+
+    try {
+      showStatus('Подготовка транзакции...', '');
+
+      // Проверяем, не участвует ли уже
+      const addr = wallet.account.address;
+      const checkResult = await callContractMethod('get_is_participant', [
+        { type: 'slice', value: addr }
+      ]);
+      const isParticipant = checkResult.stack && checkResult.stack[0] && checkResult.stack[0][1] === '0x1';
+
+      if (isParticipant) {
+        showStatus('Вы уже участвуете в этом раунде!', 'err');
+        return;
+      }
+
+      if (lotteryData.playersCount >= lotteryData.maxPlayers) {
+        showStatus('Все билеты проданы! Ожидайте розыгрыша.', 'err');
+        return;
+      }
+
+      showStatus('Отправка транзакции в кошелёк...', '');
+
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут
+        messages: [{
+          address: CONTRACT_ADDRESS,
+          amount: lotteryData.ticketPrice.toString(), // Цена билета из контракта
+          payload: '' // Пустой payload — контракт сам обработает входящий TON
+        }]
+      };
+
+      await tonConnectUI.sendTransaction(transaction);
+      showStatus('Билет куплен! Удачи в розыгрыше!', 'ok');
+
+      // Обновляем данные
+      setTimeout(updateLotteryData, 3000);
+    } catch (e) {
+      console.error('Buy ticket error:', e);
+      if (e.message && e.message.includes('Rejected')) {
+        showStatus('Транзакция отменена пользователем', 'err');
+      } else if (e.message && e.message.includes('insufficient')) {
+        showStatus('Недостаточно средств на кошельке', 'err');
+      } else {
+        showStatus('Ошибка покупки: ' + (e.message || 'неизвестная ошибка'), 'err');
+      }
+    }
+  }
+
+  // === УТИЛИТЫ ===
+  function showStatus(msg, type) {
+    const el = document.getElementById('status-msg');
+    el.textContent = msg;
+    el.className = 'status-msg ' + (type || '');
+  }
+
+  // === ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ===
+  document.addEventListener('DOMContentLoaded', () => {
+    // Инициализируем Telegram WebApp
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+    }
+
+    // Инициализируем TON Connect
+    initTonConnect();
+
+    // Загружаем данные лотереи
+    updateLotteryData();
+
+    // Обновляем данные каждые 10 секунд
+    setInterval(updateLotteryData, 10000);
+
+    // Обработчик кнопки покупки
+    document.getElementById('buy-btn').addEventListener('click', buyTicket);
+  });
+</script>
+
+</body>
+</html>
