@@ -289,3 +289,16 @@ input.text {
 .ftr a:hover {
   text-decoration: underline;
 }
+
+.opt {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  color: #56637d;
+}
+.recent .sc {
+  font-weight: 700;
+}
+.recent .sc.low { color: var(--green); }
+.recent .sc.medium { color: var(--amber); }
+.recent .sc.high { color: var(--red); }

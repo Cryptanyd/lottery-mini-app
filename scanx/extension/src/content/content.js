@@ -14,8 +14,7 @@
  *  - All UI is namespaced with `scanx-` classes to avoid style collisions.
  *
  * Extension points (next versions)
- *  - Quick-analysis hover card: replace `showTooltip` with a card that calls
- *    `${config.siteUrl(settings)}/api/analyze?ca=…` (the API already sends CORS headers).
+ *  - Quick-analysis card: implemented in card.js, data from background (analyzer.js).
  *  - CA highlighting: wrap matches visually via CSS Highlight API (no DOM edits).
  */
 (() => {
@@ -86,19 +85,11 @@
     btn.setAttribute("aria-label", `Analyze ${address} on ScanX`);
     btn.innerHTML = ICON_SVG;
 
-    // X navigates to the tweet on click/pointer events bubbling to <article>.
-    // Swallow them all so only our action runs.
-    for (const type of ["pointerdown", "mousedown", "mouseup", "pointerup", "touchstart"]) {
-      btn.addEventListener(type, stop, { passive: false });
-    }
-    btn.addEventListener("click", (e) => {
-      stop(e);
-      openReport(address);
-    });
+    // Pointer/click events are intercepted globally (see installClickGuard).
     btn.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         stop(e);
-        openReport(address);
+        activate(btn);
       }
     });
     btn.addEventListener("mouseenter", () => showTooltip(btn, address));
@@ -114,17 +105,67 @@
     e.stopImmediatePropagation();
   }
 
-  function openReport(address) {
+  /**
+   * X (React) handles clicks on tweets via listeners on its root element and
+   * navigates to the tweet. A window-level *capture* listener runs before any
+   * of them, so we swallow every pointer/click event aimed at our button here
+   * and run our own action instead.
+   */
+  const GUARDED_EVENTS = ["pointerdown", "pointerup", "mousedown", "mouseup", "click", "auxclick", "dblclick", "touchstart", "touchend", "contextmenu"];
+
+  function installClickGuard() {
+    for (const type of GUARDED_EVENTS) {
+      window.addEventListener(
+        type,
+        (e) => {
+          const btn = e.target && e.target.closest ? e.target.closest(`.${BTN_CLASS}`) : null;
+          if (!btn) return;
+          stop(e);
+          if (type === "click" && e.button === 0) activate(btn);
+          if (type === "auxclick" && e.button === 1) openTarget(btn.dataset.scanxAddr, "primary");
+        },
+        { capture: true, passive: false },
+      );
+    }
+  }
+
+  /** Button pressed: show the quick-analysis card (default) or open a tab. */
+  function activate(btn) {
+    const address = btn.dataset.scanxAddr;
     hideTooltip();
-    const payload = { type: "scanx:open", address, pageUrl: location.href };
+    if (settings.clickAction === "tab") return openTarget(address, "primary");
+    const t = config.target(settings);
+    globalThis.SCANX.card.open(btn, address, {
+      primaryLabel: t === "scanx" ? "Open full ScanX report" : `Open on ${config.TARGETS[t].label}`,
+      onOpen: (target) => openTarget(address, target),
+      analyze: analyzeViaBackground,
+    });
+  }
+
+  function analyzeViaBackground(address) {
+    return new Promise((resolve, reject) => {
+      try {
+        chrome.runtime.sendMessage({ type: "scanx:analyze", address, pageUrl: location.href }, (res) => {
+          if (chrome.runtime.lastError) return reject(new Error("Extension was updated — reload this tab"));
+          if (!res || !res.ok) return reject(new Error((res && res.error) || "Analysis failed"));
+          resolve(res.report);
+        });
+      } catch {
+        reject(new Error("Extension was updated — reload this tab"));
+      }
+    });
+  }
+
+  /** Open a report tab. target: primary | dexscreener | gmgn | birdeye | solscan | wallet */
+  function openTarget(address, target) {
+    const payload = { type: "scanx:open", address, target, pageUrl: location.href };
+    const fallback = () => window.open(config.urlFor(target, address, settings), "_blank", "noopener");
     try {
-      // Background opens the tab (respects "open in background" setting + logs history).
       chrome.runtime.sendMessage(payload, () => {
-        if (chrome.runtime.lastError) window.open(config.analyzeUrl(address, settings), "_blank", "noopener");
+        if (chrome.runtime.lastError) fallback();
       });
     } catch {
-      // Extension was reloaded/updated while this tab stayed open.
-      window.open(config.analyzeUrl(address, settings), "_blank", "noopener");
+      fallback();
     }
   }
 
@@ -145,7 +186,8 @@
     const title = document.createElement("div");
     title.className = "scanx-tooltip-title";
     const t = config.target(settings);
-    title.textContent = t === "scanx" ? "Analyze on ScanX" : `Open on ${config.TARGETS[t].label}`;
+    title.textContent =
+      settings.clickAction === "tab" ? (t === "scanx" ? "Analyze on ScanX" : `Open on ${config.TARGETS[t].label}`) : "Quick scan";
     const sub = document.createElement("div");
     sub.className = "scanx-tooltip-sub";
     sub.textContent = solana.shortAddress(address, 6, 6);
@@ -253,6 +295,7 @@
 
   function removeAllButtons() {
     document.querySelectorAll(`.${BTN_CLASS}`).forEach((b) => b.remove());
+    globalThis.SCANX.card?.close();
     lastText = new WeakMap();
     hideTooltip();
   }
@@ -270,6 +313,7 @@
 
   async function init() {
     settings = await loadSettings();
+    installClickGuard();
 
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {

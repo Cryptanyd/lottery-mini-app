@@ -22,15 +22,19 @@ export default function PrivacyPage() {
               find Solana contract addresses. Page content is never sent to us or anyone else.
             </li>
             <li>
-              When you click a scan button, a new tab opens on this website with that contract address in the URL.
-              Nothing else is transmitted.
+              When you click a scan button, only that contract address is looked up in public APIs (Solana RPC,
+              DexScreener, Jupiter) to show a quick risk card. If you open a report, a new tab opens on the site you
+              chose with the address in the URL.
             </li>
             <li>
               Settings are stored with <code>chrome.storage.sync</code>. The optional list of addresses you opened is
               stored in <code>chrome.storage.local</code> on your device only; you can turn it off and clear it in the
               popup.
             </li>
-            <li>The only permission requested is <code>storage</code>. No analytics, no tracking, no remote code.</li>
+            <li>
+              Permissions: <code>storage</code> plus access to those public APIs. No analytics, no tracking, no remote
+              code.
+            </li>
           </ul>
         </section>
 

@@ -36,7 +36,12 @@
     </form>
 
     <section class="block">
-      <div class="label">Open reports in</div>
+      <div class="label">On button click</div>
+      <select id="click-action" class="select">
+        <option value="card">Quick scan right in X</option>
+        <option value="tab">Open report in new tab</option>
+      </select>
+      <div class="label sub">Open reports in</div>
       <select id="open-with" class="select"></select>
       <label class="label sub" for="site-url">Your ScanX site</label>
       <div class="row">
@@ -44,6 +49,12 @@
         <button type="button" id="site-save" class="ghost">Save</button>
       </div>
       <div class="hint" id="site-hint"></div>
+      <label class="label sub" for="rpc-url">Solana RPC <span class="opt">optional · Helius key = faster</span></label>
+      <div class="row">
+        <input id="rpc-url" class="text" placeholder="https://mainnet.helius-rpc.com/?api-key=…" autocomplete="off" spellcheck="false" />
+        <button type="button" id="rpc-save" class="ghost">Save</button>
+      </div>
+      <div class="hint" id="rpc-hint"></div>
     </section>
 
     <section class="block">

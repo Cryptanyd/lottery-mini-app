@@ -9,9 +9,10 @@ Finds Solana contract addresses (CAs) in tweets on X and adds a small scan butto
 - Works with infinite scroll (MutationObserver + idle-time scanning, idempotent inserts)
 - Follows X's theme automatically (Default / Dim / Lights out)
 - Tooltip “Analyze on ScanX” with the short address
-- Clicks never open the underlying tweet
+- **Quick risk card right inside X** (no server needed): risk score, mint/freeze authority, top-10 holders ex-LP, liquidity, mcap, volume, age, holders — data from Solana RPC, DexScreener and Jupiter, fetched by the background worker
+- Clicks never open the underlying tweet (window-level capture guard)
 - Popup: status on the current tab (“Active on X · N CAs found”), quick-scan input, settings, recent scans
-- Only permission: `storage`. No access to your browsing data, no tracking
+- Permissions: `storage` + host access to the public APIs above. No access to your browsing data, no tracking
 
 ## Where reports open
 

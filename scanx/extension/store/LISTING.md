@@ -13,7 +13,7 @@ ScanX — Solana CA Scanner for X
 
 **Summary** (берётся из manifest, ≤132 символа)
 ```
-Finds Solana contract addresses in tweets and opens an instant risk report on ScanX in one click.
+Instant risk check for Solana contract addresses in tweets: authorities, holders, liquidity, age — right inside X.
 ```
 
 **Description** (English)
@@ -23,7 +23,8 @@ ScanX finds Solana contract addresses (CAs) right inside your X / Twitter feed a
 WHAT YOU GET
 • Automatic detection of Solana CAs in tweets, replies, quote tweets, links (DexScreener, pump.fun…) and profile bios
 • A clean scan button that fits X's Default, Dim and Lights-out themes
-• One click → full report: risk score 0–100 with every point explained, mint & freeze authority, top-10 holders (LP excluded), liquidity, market cap, volume, token age, and links to DexScreener, Birdeye, GMGN and Solscan
+• One click → quick risk card right inside X: risk score 0–100 with every point explained, mint & freeze authority, top-10 holders (LP excluded), liquidity, market cap, volume, token age
+• Open the token on DexScreener, GMGN, Birdeye, Solscan or your ScanX site in one more click
 • Works with infinite scroll — new tweets are scanned as they load
 • Toolbar popup: status on the current page, quick scan for any CA, settings, recent scans
 
@@ -32,7 +33,7 @@ Only real Solana addresses are matched: text must be valid base58 that decodes t
 
 PRIVACY FIRST
 • Page text is analyzed locally in your browser and never sent anywhere
-• Only one permission: storage (for your settings and optional local history)
+• Only the contract address you click is looked up in public APIs (Solana RPC, DexScreener, Jupiter)
 • No analytics, no tracking, no ads
 
 Not financial advice. The risk score is a heuristic based on public on-chain data — always DYOR.
@@ -80,17 +81,18 @@ ScanX находит контрактные адреса Solana (CA) прямо 
 
 **Single purpose description**
 ```
-ScanX detects Solana contract addresses in posts on X (Twitter) and lets the user open a risk report for a detected address on the ScanX website in one click.
+ScanX detects Solana contract addresses in posts on X (Twitter) and shows a risk check for a detected address in one click.
 ```
 
 **Permission justification → storage**
 ```
-Used to save the user's extension settings (on/off, scan bios, open in background, keep history) and an optional local list of recently opened addresses. Nothing leaves the device.
+Used to save the user's extension settings (on/off, click action, report site, optional RPC URL, scan bios, open in background, keep history) and an optional local list of recently scanned addresses. Nothing leaves the device.
 ```
 
-**Host permission justification** (спросят из-за content script на x.com / twitter.com)
+**Host permission justification**
 ```
-The content script runs only on x.com and twitter.com to find Solana contract addresses in post text and add a scan button next to them. Page content is processed locally and is never transmitted.
+x.com / twitter.com: the content script finds Solana contract addresses in post text and adds a scan button next to them. Page content is processed locally and never transmitted.
+api.dexscreener.com, lite-api.jup.ag, api.mainnet-beta.solana.com, mainnet.helius-rpc.com: when the user clicks a scan button, the extension fetches public market and on-chain data for that single contract address to render the risk card. Helius is used only if the user enters their own RPC URL.
 ```
 
 **Are you using remote code?** → `No, I am not using remote code`

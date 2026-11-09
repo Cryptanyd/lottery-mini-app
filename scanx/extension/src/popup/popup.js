@@ -92,6 +92,35 @@
       renderRecent();
     });
 
+    // Click action
+    const clickSel = $("click-action");
+    clickSel.value = current.clickAction === "tab" ? "tab" : "card";
+    clickSel.addEventListener("change", async () => {
+      current.clickAction = clickSel.value;
+      await chrome.storage.sync.set({ clickAction: clickSel.value });
+    });
+
+    // Optional Helius RPC
+    const rpcInput = $("rpc-url");
+    rpcInput.value = current.rpcUrl || "";
+    const saveRpc = async () => {
+      const v = rpcInput.value.trim();
+      const hint = $("rpc-hint");
+      if (v && !/^https:\/\/(mainnet\.helius-rpc\.com\/|api\.mainnet-beta\.solana\.com)/.test(v)) {
+        hint.textContent = "Only Helius (mainnet.helius-rpc.com) or the public Solana RPC are supported";
+        hint.className = "hint bad";
+        return;
+      }
+      current.rpcUrl = v;
+      await chrome.storage.sync.set({ rpcUrl: v });
+      hint.textContent = v ? "RPC saved" : "Using the public Solana RPC";
+      hint.className = v ? "hint ok" : "hint";
+    };
+    $("rpc-save").addEventListener("click", saveRpc);
+    rpcInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") saveRpc();
+    });
+
     // ScanX site URL
     const siteInput = $("site-url");
     siteInput.value = current.siteUrl || "";
@@ -156,10 +185,16 @@
       a.target = "_blank";
       a.rel = "noreferrer";
       const addr = document.createElement("span");
-      addr.textContent = solana.shortAddress(h.address, 6, 6);
-      const when = document.createElement("span");
-      when.textContent = ago(h.at);
-      a.append(addr, when);
+      addr.textContent = h.symbol ? `$${h.symbol}` : solana.shortAddress(h.address, 6, 6);
+      const right = document.createElement("span");
+      if (typeof h.score === "number") {
+        const sc = document.createElement("span");
+        sc.className = `sc ${h.level || ""}`;
+        sc.textContent = `${h.score} · `;
+        right.append(sc);
+      }
+      right.append(ago(h.at));
+      a.append(addr, right);
       li.append(a);
       list.append(li);
     }

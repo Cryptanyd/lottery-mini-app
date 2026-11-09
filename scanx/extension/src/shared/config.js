@@ -38,7 +38,7 @@ function normalizeSiteUrl(value) {
 globalThis.SCANX.config = Object.freeze({
   BASE_URL: SCANX_BASE_URL,
   NAME: "ScanX",
-  VERSION: "0.2.0",
+  VERSION: "0.3.0",
   TARGETS: SCANX_TARGETS,
   normalizeSiteUrl,
 
@@ -61,6 +61,17 @@ globalThis.SCANX.config = Object.freeze({
     return SCANX_TARGETS[t].url(encodeURIComponent(address));
   },
 
+  /** URL for any open-target used by the quick card. */
+  urlFor(target, address, settings) {
+    const a = encodeURIComponent(address);
+    if (target === "primary" || !target) return this.analyzeUrl(address, settings);
+    if (target === "solscan") return `https://solscan.io/token/${a}`;
+    if (target === "wallet") return `https://gmgn.ai/sol/address/${a}`;
+    if (target === "scanx" && this.siteUrl(settings)) return `${this.siteUrl(settings)}/ca/${a}?ref=ext`;
+    if (SCANX_TARGETS[target] && SCANX_TARGETS[target].url) return SCANX_TARGETS[target].url(a);
+    return this.analyzeUrl(address, settings);
+  },
+
   /** Default user settings (stored in chrome.storage.sync). */
   DEFAULT_SETTINGS: Object.freeze({
     enabled: true, // show buttons next to CAs
@@ -69,6 +80,8 @@ globalThis.SCANX.config = Object.freeze({
     keepHistory: true, // remember last opened CAs (local only)
     openWith: "scanx", // scanx | dexscreener | gmgn | birdeye
     siteUrl: "", // user-provided ScanX site, e.g. https://scanx-xxx.vercel.app
+    clickAction: "card", // card = quick analysis in X, tab = open report tab
+    rpcUrl: "", // optional custom Solana RPC (e.g. Helius) for quick analysis
   }),
 
   HISTORY_LIMIT: 50,
