@@ -1,0 +1,63 @@
+{
+  "_comment": "Fictional demo token used ONLY for store screenshots. Addresses are random keypairs.",
+  "version": 1,
+  "address": "6CQKxDATnNPr7m1SWa2Ex9CTv6ESurR7UuCJJ5hvUFXt",
+  "fetchedAt": 0,
+  "warnings": [],
+  "token": {
+    "name": "Example Cat",
+    "symbol": "ECAT",
+    "logo": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f5b73b'/><stop offset='1' stop-color='%238b7bff'/></linearGradient></defs><circle cx='32' cy='32' r='32' fill='url(%23g)'/><path d='M18 22l6 8h16l6-8v18a14 14 0 0 1-28 0z' fill='%230b1020'/><circle cx='27' cy='38' r='2.5' fill='%23f5b73b'/><circle cx='37' cy='38' r='2.5' fill='%23f5b73b'/></svg>",
+    "decimals": 6,
+    "supply": 1000000000,
+    "program": "spl-token",
+    "extensions": [],
+    "website": "https://example.com",
+    "twitter": "https://x.com/example",
+    "telegram": null,
+    "verified": false
+  },
+  "authorities": { "mint": null, "freeze": null },
+  "market": {
+    "priceUsd": 0.000842,
+    "marketCap": 842000,
+    "fdv": 842000,
+    "liquidityUsd": 96400,
+    "volume24h": 1310000,
+    "priceChange24h": 38.6,
+    "pairs": [
+      { "dex": "pumpswap", "pairAddress": "4368N9GjJpDi1ZkHhFJbnBrYn7pMPAByw7RHzir6E5vf", "url": "https://example.com", "priceUsd": 0.000842, "liquidityUsd": 81200, "volume24h": 1120000, "priceChange24h": 38.6, "createdAt": 0 },
+      { "dex": "raydium", "pairAddress": "JBce8ZcwKpqEDugbpoV2oe94rKg5hZdja7SrztvVKqpC", "url": "https://example.com", "priceUsd": 0.000839, "liquidityUsd": 15200, "volume24h": 190000, "priceChange24h": 37.9, "createdAt": 0 }
+    ],
+    "holderCount": 3127
+  },
+  "age": { "createdAt": 0, "source": "pair", "approximate": false },
+  "holders": {
+    "top": [
+      { "rank": 1, "account": "7Bqn45JpXwN1hYvjZ835LMUf9qxv2ctZ7HgTPHMT7K1c", "owner": "4368N9GjJpDi1ZkHhFJbnBrYn7pMPAByw7RHzir6E5vf", "amount": 124000000, "pct": 12.4, "tag": "lp" },
+      { "rank": 2, "account": "CTH1UUxLri7nP26NnD2aLKku2iJMH1E5w2h3SgBaanJi", "owner": "Gg4xM5SHNpjmjZUZ9i3NqS4HUex1mFcBmWkXTgUiL22W", "amount": 31000000, "pct": 3.1, "tag": null },
+      { "rank": 3, "account": "FxCiQ2BmsvLnbzUiL2Z9kvjohAxFRJrMBUNShJSD8ogC", "owner": "7nTuiZVMz1zxFJSoowxoj8RU8TvDRKqrtMvVXDPgXqCC", "amount": 26000000, "pct": 2.6, "tag": null },
+      { "rank": 4, "account": "77Y39sLtoBL33Rmr3uq3TQYpg5wFBjip2M1RLHXNykAy", "owner": "Fc2swLFKWc1timrXNDPkjwN1wZP5XWwVN8UgHdv7uEni", "amount": 22000000, "pct": 2.2, "tag": null },
+      { "rank": 5, "account": "5qrddc3sMQhWdqrxzoKVJJgEfAaFA5einkz2VEmZsgtY", "owner": "FMw5jEyKQW1TrcUMqmiLTnsY5LvC9v1gjtWdsLxvZbPo", "amount": 19000000, "pct": 1.9, "tag": null },
+      { "rank": 6, "account": "9xnDbVjB4zgrzKA5WiCXE7XWPv1VKgRFtCkEqLebHjEA", "owner": "Ftk5hEkRmXkLBbY17TEos9D8xkUhcfY9HyZ7MCjcZHLF", "amount": 17000000, "pct": 1.7, "tag": null },
+      { "rank": 7, "account": "Gg4xM5SHNpjmjZUZ9i3NqS4HUex1mFcBmWkXTgUiL22W", "owner": "CTH1UUxLri7nP26NnD2aLKku2iJMH1E5w2h3SgBaanJi", "amount": 14000000, "pct": 1.4, "tag": null },
+      { "rank": 8, "account": "7nTuiZVMz1zxFJSoowxoj8RU8TvDRKqrtMvVXDPgXqCC", "owner": "FxCiQ2BmsvLnbzUiL2Z9kvjohAxFRJrMBUNShJSD8ogC", "amount": 12000000, "pct": 1.2, "tag": null },
+      { "rank": 9, "account": "Fc2swLFKWc1timrXNDPkjwN1wZP5XWwVN8UgHdv7uEni", "owner": "77Y39sLtoBL33Rmr3uq3TQYpg5wFBjip2M1RLHXNykAy", "amount": 11000000, "pct": 1.1, "tag": null },
+      { "rank": 10, "account": "FMw5jEyKQW1TrcUMqmiLTnsY5LvC9v1gjtWdsLxvZbPo", "owner": "5qrddc3sMQhWdqrxzoKVJJgEfAaFA5einkz2VEmZsgtY", "amount": 9000000, "pct": 0.9, "tag": null }
+    ],
+    "top10Pct": 38.5,
+    "top10PctExLp": 16.0
+  },
+  "risk": {
+    "score": 10,
+    "level": "low",
+    "factors": [
+      { "id": "mint", "label": "Mint authority", "detail": "Revoked", "status": "ok", "points": 0 },
+      { "id": "freeze", "label": "Freeze authority", "detail": "Revoked", "status": "ok", "points": 0 },
+      { "id": "top10", "label": "Top-10 holders", "detail": "16.0% of supply (ex-LP)", "status": "ok", "points": 0 },
+      { "id": "whale", "label": "Largest wallet", "detail": "3.1% of supply", "status": "ok", "points": 0 },
+      { "id": "liq", "label": "Liquidity", "detail": "$96.4K", "status": "ok", "points": 0 },
+      { "id": "age", "label": "Token age", "detail": "19h 12m", "status": "warn", "points": 10 }
+    ]
+  }
+}

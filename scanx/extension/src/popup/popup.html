@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ScanX</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="hdr">
+      <div class="brand">
+        <img src="../../icons/icon-48.png" alt="" width="28" height="28" />
+        <div>
+          <div class="name">Scan<span>X</span></div>
+          <div class="tag">Solana CA scanner for X</div>
+        </div>
+      </div>
+      <span class="ver" id="version"></span>
+    </header>
+
+    <section class="status" id="status" data-state="idle">
+      <span class="dot"></span>
+      <div>
+        <div class="status-title" id="status-title">Checking…</div>
+        <div class="status-sub" id="status-sub"></div>
+      </div>
+    </section>
+
+    <form class="quick" id="quick">
+      <label class="label" for="ca">Quick scan</label>
+      <div class="row">
+        <input id="ca" placeholder="Paste Solana CA" autocomplete="off" spellcheck="false" />
+        <button type="submit">Scan</button>
+      </div>
+      <div class="err" id="ca-err" hidden>Not a valid Solana address</div>
+    </form>
+
+    <section class="block">
+      <div class="label">Settings</div>
+      <label class="toggle">
+        <span>Show scan buttons on X</span>
+        <input type="checkbox" data-setting="enabled" />
+        <i></i>
+      </label>
+      <label class="toggle">
+        <span>Scan profile bios</span>
+        <input type="checkbox" data-setting="scanProfiles" />
+        <i></i>
+      </label>
+      <label class="toggle">
+        <span>Open reports in background tab</span>
+        <input type="checkbox" data-setting="openInBackground" />
+        <i></i>
+      </label>
+      <label class="toggle">
+        <span>Remember scan history</span>
+        <input type="checkbox" data-setting="keepHistory" />
+        <i></i>
+      </label>
+    </section>
+
+    <section class="block" id="recent-block" hidden>
+      <div class="label">Recent <button type="button" class="link" id="clear-history">clear</button></div>
+      <ul class="recent" id="recent"></ul>
+    </section>
+
+    <footer class="ftr">
+      <a id="site-link" target="_blank" rel="noreferrer">Open ScanX ↗</a>
+      <a id="pro-link" target="_blank" rel="noreferrer">Go Pro</a>
+    </footer>
+
+    <script src="../shared/config.js"></script>
+    <script src="../shared/solana.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
