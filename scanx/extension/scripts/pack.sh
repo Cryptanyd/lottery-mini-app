@@ -17,8 +17,8 @@ rm -f "$STAGE/icons/icon.svg"
 
 if [[ -n "$DOMAIN" ]]; then
   DOMAIN="${DOMAIN%/}"
-  if [[ ! "$DOMAIN" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?$ ]]; then
-    echo "Domain must look like https://example.com (https, no path)" >&2
+  if [[ ! "$DOMAIN" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?$ && ! "$DOMAIN" =~ ^http://localhost(:[0-9]+)?$ ]]; then
+    echo "Domain must look like https://example.com (https, no path) or http://localhost:3000 for local testing" >&2
     exit 1
   fi
   sed -i.bak -E "s#^const SCANX_BASE_URL = \".*\";#const SCANX_BASE_URL = \"${DOMAIN}\";#" "$STAGE/src/shared/config.js"
