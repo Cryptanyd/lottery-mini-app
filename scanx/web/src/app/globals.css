@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+/*
+ * ScanX design tokens — "crypto terminal" aesthetic.
+ * shadcn/ui compatible variable names so `npx shadcn add <component>` just works.
+ */
+:root {
+  --background: #06080f;
+  --foreground: #d6deeb;
+  --card: #0a0f1c;
+  --card-foreground: #d6deeb;
+  --popover: #0b1120;
+  --popover-foreground: #d6deeb;
+  --primary: #f5b73b; /* amber */
+  --primary-foreground: #120d02;
+  --secondary: #121a2c;
+  --secondary-foreground: #d6deeb;
+  --muted: #0f1626;
+  --muted-foreground: #6f7f9c;
+  --accent: #8b7bff; /* violet */
+  --accent-foreground: #0b0820;
+  --cyan: #4fd1c5;
+  --success: #3ddc97;
+  --warning: #f5b73b;
+  --destructive: #ff4d6d;
+  --border: #1a2338;
+  --input: #1a2338;
+  --ring: #f5b73b;
+  --radius: 0.5rem;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-cyan: var(--cyan);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+}
+
+/* Background: faint grid + radial glow, echoing a terminal HUD. */
+.scanx-bg {
+  background-image:
+    radial-gradient(60rem 30rem at 70% -10%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 70%),
+    radial-gradient(40rem 24rem at 0% 0%, color-mix(in oklab, var(--primary) 8%, transparent), transparent 70%),
+    linear-gradient(to right, color-mix(in oklab, var(--border) 45%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--border) 45%, transparent) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px;
+  background-attachment: fixed;
+}
+
+/* Small uppercase mono labels like the reference HUD. */
+.hud-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Wallet adapter modal/button theming */
+.wallet-adapter-button {
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+  height: 2.25rem !important;
+  padding: 0 0.875rem !important;
+  border-radius: var(--radius) !important;
+  line-height: 1 !important;
+}
+.wallet-adapter-button-trigger {
+  background: var(--secondary) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--foreground) !important;
+}
+.wallet-adapter-button-trigger:hover {
+  border-color: color-mix(in oklab, var(--primary) 50%, var(--border)) !important;
+}
+.wallet-adapter-button-start-icon img,
+.wallet-adapter-button-start-icon {
+  width: 16px !important;
+  height: 16px !important;
+}
+.wallet-adapter-modal-wrapper {
+  background: var(--popover) !important;
+  border: 1px solid var(--border);
+  font-family: var(--font-sans) !important;
+}
+.wallet-adapter-dropdown-list {
+  background: var(--popover) !important;
+  border: 1px solid var(--border);
+  font-family: var(--font-mono) !important;
+}
+
+@keyframes scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.scan-line {
+  animation: scan 1.4s ease-in-out infinite;
+}

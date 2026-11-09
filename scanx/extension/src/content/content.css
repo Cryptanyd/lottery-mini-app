@@ -1,0 +1,115 @@
+/*
+ * ScanX in-page UI. Everything is prefixed `scanx-` and uses !important
+ * sparingly only where X's atomic CSS would otherwise win.
+ * Theme comes from <html data-scanx-theme="dark|light"> set by content.js.
+ */
+
+:root {
+  --scanx-bg: #0b1020;
+  --scanx-border: #26304a;
+  --scanx-fg: #c9d4e8;
+  --scanx-accent: #f5b73b;
+  --scanx-ring: #8b7bff;
+  --scanx-hover-bg: #141c33;
+  --scanx-tip-bg: #0b1020;
+  --scanx-tip-fg: #e6ecf7;
+  --scanx-tip-sub: #8b98b3;
+}
+
+html[data-scanx-theme="light"] {
+  --scanx-bg: #f4f6fb;
+  --scanx-border: #d5dbe8;
+  --scanx-fg: #3d4a63;
+  --scanx-accent: #d98e04;
+  --scanx-ring: #6a59f0;
+  --scanx-hover-bg: #ffffff;
+  --scanx-tip-bg: #0b1020;
+  --scanx-tip-fg: #e6ecf7;
+  --scanx-tip-sub: #8b98b3;
+}
+
+.scanx-btn {
+  all: unset;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 0 3px !important;
+  padding: 0 !important;
+  vertical-align: -4px;
+  border-radius: 6px;
+  border: 1px solid var(--scanx-border);
+  background: var(--scanx-bg);
+  color: var(--scanx-ring);
+  cursor: pointer;
+  line-height: 0;
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease,
+    background 0.12s ease,
+    box-shadow 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.scanx-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  pointer-events: none;
+}
+
+.scanx-btn .scanx-core {
+  fill: var(--scanx-accent);
+}
+
+.scanx-btn:hover,
+.scanx-btn:focus-visible {
+  border-color: var(--scanx-accent);
+  background: var(--scanx-hover-bg);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--scanx-accent) 22%, transparent);
+  transform: translateY(-1px);
+}
+
+.scanx-btn:active {
+  transform: translateY(0) scale(0.94);
+}
+
+/* Shared tooltip — fixed so tweet containers can't clip it. */
+.scanx-tooltip {
+  position: fixed;
+  z-index: 2147483647;
+  pointer-events: none;
+  padding: 6px 9px;
+  border-radius: 7px;
+  border: 1px solid #26304a;
+  background: var(--scanx-tip-bg);
+  color: var(--scanx-tip-fg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  font: 600 12px/1.25 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  opacity: 0;
+  transform: translateY(2px);
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+  white-space: nowrap;
+}
+
+.scanx-tooltip.scanx-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.scanx-tooltip-sub {
+  margin-top: 2px;
+  font: 500 11px/1.2 "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  color: var(--scanx-tip-sub);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanx-btn,
+  .scanx-tooltip {
+    transition: none;
+  }
+}
