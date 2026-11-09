@@ -35,8 +35,10 @@ Quick test: search X for `DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263` (BONK) a
 
 ## Publish
 
+Full step-by-step guide (RU): **[PUBLISH.md](PUBLISH.md)**. Store texts, privacy answers and images are in [`store/`](store/LISTING.md).
+
 ```bash
-./scripts/pack.sh        # -> dist/scanx-extension-v0.1.0.zip
+./scripts/pack.sh https://your-domain.com   # -> dist/scanx-extension-v0.1.0.zip with your domain baked in
 ```
 
 Upload the zip to the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole) (one-time $5 fee) and to [Edge Add-ons](https://partner.microsoft.com/dashboard/microsoftedge) (free). Brave installs from the Chrome Web Store. Use `PRIVACY.md` as the privacy policy. Regenerate PNG icons from `icons/icon.svg` with `node scripts/build-icons.js` (needs Playwright).

@@ -23,8 +23,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 md:pb-16">{children}</main>
           <footer className="mx-auto hidden max-w-6xl px-4 pb-8 md:block">
-            <p className="hud-label border-t border-border pt-4">
-              {APP_NAME} · data: Solana RPC · DexScreener · Jupiter · not financial advice
+            <p className="hud-label flex flex-wrap justify-between gap-2 border-t border-border pt-4">
+              <span>{APP_NAME} · data: Solana RPC · DexScreener · Jupiter · not financial advice</span>
+              <a href="/privacy" className="hover:text-foreground">
+                Privacy
+              </a>
             </p>
           </footer>
         </Providers>
