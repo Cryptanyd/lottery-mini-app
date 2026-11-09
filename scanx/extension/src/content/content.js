@@ -15,7 +15,7 @@
  *
  * Extension points (next versions)
  *  - Quick-analysis hover card: replace `showTooltip` with a card that calls
- *    `${BASE_URL}/api/analyze?ca=…` (the API already sends CORS headers).
+ *    `${config.siteUrl(settings)}/api/analyze?ca=…` (the API already sends CORS headers).
  *  - CA highlighting: wrap matches visually via CSS Highlight API (no DOM edits).
  */
 (() => {
@@ -120,11 +120,11 @@
     try {
       // Background opens the tab (respects "open in background" setting + logs history).
       chrome.runtime.sendMessage(payload, () => {
-        if (chrome.runtime.lastError) window.open(config.analyzeUrl(address), "_blank", "noopener");
+        if (chrome.runtime.lastError) window.open(config.analyzeUrl(address, settings), "_blank", "noopener");
       });
     } catch {
       // Extension was reloaded/updated while this tab stayed open.
-      window.open(config.analyzeUrl(address), "_blank", "noopener");
+      window.open(config.analyzeUrl(address, settings), "_blank", "noopener");
     }
   }
 
@@ -144,7 +144,8 @@
     tooltip.innerHTML = "";
     const title = document.createElement("div");
     title.className = "scanx-tooltip-title";
-    title.textContent = "Analyze on ScanX";
+    const t = config.target(settings);
+    title.textContent = t === "scanx" ? "Analyze on ScanX" : `Open on ${config.TARGETS[t].label}`;
     const sub = document.createElement("div");
     sub.className = "scanx-tooltip-sub";
     sub.textContent = solana.shortAddress(address, 6, 6);

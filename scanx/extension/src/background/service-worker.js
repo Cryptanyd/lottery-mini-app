@@ -13,8 +13,10 @@ chrome.runtime.onInstalled.addListener(async ({ reason }) => {
   const current = await chrome.storage.sync.get(null);
   await chrome.storage.sync.set({ ...config.DEFAULT_SETTINGS, ...current });
 
-  if (reason === "install") {
-    chrome.tabs.create({ url: `${config.BASE_URL}/?ref=ext-install` });
+  // Welcome page only when a ScanX site is baked into the build.
+  const site = config.siteUrl({});
+  if (reason === "install" && site) {
+    chrome.tabs.create({ url: `${site}/?ref=ext-install` });
   }
 });
 
@@ -33,7 +35,7 @@ async function handleOpen({ address, pageUrl }, sender) {
   const settings = await chrome.storage.sync.get(config.DEFAULT_SETTINGS);
 
   await chrome.tabs.create({
-    url: config.analyzeUrl(address),
+    url: config.analyzeUrl(address, settings),
     active: !settings.openInBackground,
     // Place the new tab right after the X tab it came from.
     ...(sender?.tab ? { index: sender.tab.index + 1, openerTabId: sender.tab.id } : {}),

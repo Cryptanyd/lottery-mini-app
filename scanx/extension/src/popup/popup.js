@@ -8,8 +8,29 @@
   const $ = (id) => document.getElementById(id);
 
   $("version").textContent = `v${config.VERSION}`;
-  $("site-link").href = `${config.BASE_URL}/?ref=ext-popup`;
-  $("pro-link").href = `${config.BASE_URL}/pricing?ref=ext-popup`;
+  /** Latest settings (kept in sync with chrome.storage). */
+  let current = { ...config.DEFAULT_SETTINGS };
+
+  /** Footer links + hint reflect whether a ScanX site is configured. */
+  function renderSiteState() {
+    const site = config.siteUrl(current);
+    const target = config.target(current);
+    for (const [id, path] of [["site-link", "/"], ["pro-link", "/pricing"]]) {
+      const a = $(id);
+      a.hidden = !site;
+      if (site) a.href = `${site}${path}?ref=ext-popup`;
+    }
+    const hint = $("site-hint");
+    hint.className = "hint";
+    if (current.openWith === "scanx" && !site) {
+      hint.textContent = "No ScanX site yet — opening on DexScreener. Paste your site URL above.";
+    } else if (site) {
+      hint.textContent = target === "scanx" ? `Reports open on ${new URL(site).host}` : `Site saved: ${new URL(site).host}`;
+      hint.classList.add("ok");
+    } else {
+      hint.textContent = "";
+    }
+  }
 
   /* ---------------------------- Status ---------------------------- */
 
@@ -53,6 +74,52 @@
 
   async function initSettings() {
     const s = await chrome.storage.sync.get(config.DEFAULT_SETTINGS);
+    current = { ...current, ...s };
+
+    // "Open reports in" selector
+    const sel = $("open-with");
+    for (const [key, t] of Object.entries(config.TARGETS)) {
+      const o = document.createElement("option");
+      o.value = key;
+      o.textContent = t.label;
+      sel.append(o);
+    }
+    sel.value = current.openWith in config.TARGETS ? current.openWith : "scanx";
+    sel.addEventListener("change", async () => {
+      current.openWith = sel.value;
+      await chrome.storage.sync.set({ openWith: sel.value });
+      renderSiteState();
+      renderRecent();
+    });
+
+    // ScanX site URL
+    const siteInput = $("site-url");
+    siteInput.value = current.siteUrl || "";
+    const saveSite = async () => {
+      const raw = siteInput.value.trim();
+      const normalized = config.normalizeSiteUrl(raw);
+      if (raw && normalized === null) {
+        const hint = $("site-hint");
+        hint.textContent = "Enter a valid https:// address, e.g. https://scanx-xxx.vercel.app";
+        hint.className = "hint bad";
+        return;
+      }
+      current.siteUrl = normalized || "";
+      siteInput.value = current.siteUrl;
+      if (current.siteUrl) {
+        current.openWith = "scanx";
+        sel.value = "scanx";
+      }
+      await chrome.storage.sync.set({ siteUrl: current.siteUrl, openWith: current.openWith });
+      renderSiteState();
+      renderRecent();
+    };
+    $("site-save").addEventListener("click", saveSite);
+    siteInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") saveSite();
+    });
+    renderSiteState();
+
     document.querySelectorAll("[data-setting]").forEach((input) => {
       const key = input.dataset.setting;
       input.checked = !!s[key];
@@ -85,7 +152,7 @@
     for (const h of history.slice(0, 5)) {
       const li = document.createElement("li");
       const a = document.createElement("a");
-      a.href = config.analyzeUrl(h.address);
+      a.href = config.analyzeUrl(h.address, current);
       a.target = "_blank";
       a.rel = "noreferrer";
       const addr = document.createElement("span");
@@ -104,6 +171,5 @@
   });
 
   refreshStatus();
-  initSettings();
-  renderRecent();
+  initSettings().then(renderRecent);
 })();

@@ -36,6 +36,17 @@
     </form>
 
     <section class="block">
+      <div class="label">Open reports in</div>
+      <select id="open-with" class="select"></select>
+      <label class="label sub" for="site-url">Your ScanX site</label>
+      <div class="row">
+        <input id="site-url" class="text" placeholder="https://your-scanx.vercel.app" autocomplete="off" spellcheck="false" />
+        <button type="button" id="site-save" class="ghost">Save</button>
+      </div>
+      <div class="hint" id="site-hint"></div>
+    </section>
+
+    <section class="block">
       <div class="label">Settings</div>
       <label class="toggle">
         <span>Show scan buttons on X</span>

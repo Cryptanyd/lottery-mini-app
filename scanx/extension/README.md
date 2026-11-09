@@ -13,13 +13,14 @@ Finds Solana contract addresses (CAs) in tweets on X and adds a small scan butto
 - Popup: status on the current tab (“Active on X · N CAs found”), quick-scan input, settings, recent scans
 - Only permission: `storage`. No access to your browsing data, no tracking
 
-## Change the domain
+## Where reports open
 
-Edit **one line** in `src/shared/config.js`:
+- In the popup, **Open reports in**: ScanX (your site), DexScreener, GMGN or Birdeye.
+- **Your ScanX site**: paste your deployed URL (e.g. `https://scanx-xxx.vercel.app`) — no rebuild needed.
+- While no site is configured, reports open on DexScreener.
+- To bake a default site into a build: `./scripts/pack.sh https://your-domain.com` (or set `SCANX_BASE_URL` in `src/shared/config.js`).
 
-```js
-const SCANX_BASE_URL = "https://scanx.app";
-```
+Prebuilt zip for developer-mode testing: [`release/ScanX-extension.zip`](release/ScanX-extension.zip).
 
 ## Install for testing (developer mode)
 

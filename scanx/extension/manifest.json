@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ScanX — Solana CA Scanner for X",
   "short_name": "ScanX",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Finds Solana contract addresses in tweets and opens an instant risk report on ScanX in one click.",
   "minimum_chrome_version": "110",
   "icons": {

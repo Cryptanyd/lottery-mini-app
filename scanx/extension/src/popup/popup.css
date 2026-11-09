@@ -152,6 +152,47 @@ input#ca:focus {
   background: var(--card);
 }
 
+.label.sub {
+  margin-top: 10px;
+}
+.select,
+input.text {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--fg);
+  font: 12px var(--mono);
+  outline: none;
+}
+.select:focus,
+input.text:focus {
+  border-color: rgba(245, 183, 59, 0.6);
+}
+input.text {
+  flex: 1;
+}
+.row button.ghost {
+  height: 32px;
+  background: var(--secondary, #121a2c);
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+.hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.hint.ok {
+  color: var(--green);
+}
+.hint.bad {
+  color: var(--red);
+}
+
 .toggle {
   position: relative;
   display: flex;

@@ -2,7 +2,7 @@
 # Builds a zip ready for upload to the Chrome Web Store / Edge Add-ons.
 #
 # Usage:
-#   ./scripts/pack.sh                          # uses SCANX_BASE_URL from src/shared/config.js
+#   ./scripts/pack.sh                          # no default site; users set it in the popup
 #   ./scripts/pack.sh https://your-domain.com  # bakes your domain into the zip (source files untouched)
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -26,8 +26,10 @@ if [[ -n "$DOMAIN" ]]; then
 fi
 
 BAKED=$(grep -E '^const SCANX_BASE_URL' "$STAGE/src/shared/config.js" | sed -E 's/.*"(.*)".*/\1/')
-if [[ "$BAKED" == "https://scanx.app" ]]; then
-  echo "⚠  Domain is still the placeholder https://scanx.app — pass your domain: ./scripts/pack.sh https://your-domain.com" >&2
+if [[ -z "$BAKED" ]]; then
+  echo "ℹ  No ScanX site baked in: reports open on DexScreener until a site URL is set in the popup." >&2
+  echo "   To bake one in: ./scripts/pack.sh https://your-domain.com" >&2
+  BAKED="(none — set in popup)"
 fi
 
 mkdir -p dist
